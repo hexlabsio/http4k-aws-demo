@@ -13,9 +13,7 @@ when a specific endpoint and HTTP method is invoked. How to configure will be sh
 basic function that could be invoked. 
 
 ## Basic API Gateway Lambda
-As each AWS event will contains different information the payloads passed to a lambda function will look very 
-different. AWS  provides a Java SDK to aid handling different events types, it is also possible to create your own 
-handlers that read the events from InputStreams but we will stick with the SDK for a first example. 
+As each AWS event will contain different information the payloads passed to a lambda function will look very different. AWS  provides a Java SDK to aid handling these different events types, it is also possible to create your own handlers that read the events from InputStreams but we will stick with the SDK for a first example. 
 Below is a our basic Hello world lambda in Kotlin.
 
 ```kotlin
@@ -28,8 +26,8 @@ class HelloWorldHandler : RequestHandler<APIGatewayProxyRequestEvent, APIGateway
   }
 }
 ```
-This is saying that our lambda will Handle an `APIGatewayProxyRequestEvent` payload and return an `APIGatewayProxyResponseEvent`
-with status 200 and a "hello world" msg in JSON body.  
+This is saying that our lambda function will Handle an `APIGatewayProxyRequestEvent` payload and return an `APIGatewayProxyResponseEvent`
+with status 200 and a "hello world" msg in a JSON body.  
 
 Once attached to an API gateway endpoint a request will return the the HTTP response below.
 ```shell script
@@ -49,8 +47,7 @@ x-amz-cf-id: VNt8h2J0tBu_aJSKsVZlcx0mrBIg6C0BT3Jrd47u3TkJ8tF0_NNC-Q==
 {"msg": "hello world"}%
 
 ```
-If we examine the `APIGatewayProxyRequestEvent` sent to the lambda function we can see that all the information from
- the HTTP request is present alongside other AWS specific information. 
+If we examine the `APIGatewayProxyRequestEvent` sent to the lambda function we can see that all the information from the HTTP request is present alongside other AWS specific information. 
  
  ```json
 {
@@ -125,14 +122,13 @@ If we examine the `APIGatewayProxyRequestEvent` sent to the lambda function we c
 }
 ```
 
-This is great for setting up simple one off endpoints but gets cumbersome very quickly if we want to set up a
-REST service with multiple endpoints. Functionality like extracting from parameters encoding 
+This is great for setting up simple one off endpoints but gets cumbersome very quickly if we want to set up a REST service with multiple endpoints. Functionality like extracting from parameters encoding 
 
 When we first started to use this we found things like encoding and decoding payloads, checking
 HTTP Methods and extracting request parameters were all implemented by hand we were implementing a lot of functionality that would be included in other HTTP libraries. .  
   
   
- ##HTTP4K 
+ ## HTTP4K 
 HTTP4K is library written in Kotlin specifically to deal with HTTP programming. Rather than its own implement an HTTP
  server or client it provides a lightweight abstraction that can be easily adapted to existing HTTP servers and clients. 
  Supported servers include:
@@ -244,7 +240,7 @@ val bmwResponse: Response =  Response(Status.OK)
 ```
 HTTP4K also comes with predefined lenses to extract from Parameters and Headers in HTTP messages.
 
-###HTTP4K Serverless module
+### HTTP4K Serverless module
 While an AWS lambda functions doesn't equate to a server the APIGateway Request and Response events have been adapted to
  the HTTP4k model in the HTTP4K Serverless module. In this case we implement a supplied AppLoader interface.
  
@@ -262,7 +258,7 @@ override fun invoke(env: Map<String, String>): HttpHandler =
 
 We now have access to HTTP4Ks functionality and are able to create powerful and succinct REST services inside our lambda function. 
 
-###Deployment
+### Deployment
 Setting up an Lambda function in AWS involves a number of operations that can be off putting. These include setup and
  configuration for:
 - IAM roles
