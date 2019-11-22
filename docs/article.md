@@ -1,7 +1,6 @@
 # Creating a Microservice with Http4K and AWS Lambda
 
-At Hexlabs we have been use have been using AWS lambda functions for number of use cases over the past few years
-
+At Hexlabs we have been using AWS lambda functions for number of use cases over the past few years.
 The basic idea is that you deploy code that reacts to a specified event in an AWS envrionment. 
 AWS is then responsible for ensuring that the code to process the event is run in a timely manner. If no events take place 
 the code is not run and so there is cost for the f. On the other side of things if there are a large amount of events
