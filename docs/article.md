@@ -1,26 +1,25 @@
-# Kotlin and AWS Lambda Title here
+# Creating a Microservice with Http4K and AWS Lambda
 
-**
-At Hexlabs we use have been using AWS lambda functions for lots of use cases. **
+At Hexlabs we have been use have been using AWS lambda functions for number of use cases over the past few years
 
-The basic idea is that you deploy code that reacts to a specified event in AWS. AWS is then responsible for ensuring
-that the code to process the event is run in a timely manner. If no events take place the code is not run and so
-there is *no charge. On the other side of things if there are a large amount of events happening AWS can quickly
-spin up many instances of your lambda to cope with the higher workload. From this we get services that are cost
+The basic idea is that you deploy code that reacts to a specified event in an AWS envrionment. 
+AWS is then responsible for ensuring that the code to process the event is run in a timely manner. If no events take place 
+the code is not run and so there is cost for the f. On the other side of things if there are a large amount of events
+ happening AWS can quickly
+spin up many instances of the lambda function to cope with the higher workload. From this we get services that are cost
 effective and scalable with a minimal overhead to support them.
-
 
 A lambda functions can be configured to react to an [ever growing list of events](
 https://docs.aws.amazon.com/lambda/latest/dg/lambda-services.html) 
-in the AWS ecosystem but we are going to focus on one of the most common use cases, reacting to HTTP requests 
+in the AWS ecosystem but we are going to focus on one of the most common uses, reacting to HTTP requests 
 sent to [API gateway](https://aws.amazon.com/api-gateway). An API Gateway can be configured to invoke a lambda function
-when a specific endpoint and HTTP method is invoked. How to configure will be shown later but for now we will look a
-basic function that can be invokes. 
+when a specific endpoint and HTTP method is invoked. How to configure will be shown later but for now we will look a at
+basic function that could be invoked. 
 
 ## Basic API Gateway Lambda
-As each AWS event will contains different information the payloads passed to a lambda function will look very very
+As each AWS event will contains different information the payloads passed to a lambda function will look very 
 different. AWS  provides a Java SDK to aid handling different events types, it is also possible to create your own 
-handlers that read the events from InputStreams but we will stick with the sdk for a first example. 
+handlers that read the events from InputStreams but we will stick with the SDK for a first example. 
 Below is a our basic Hello world lambda in Kotlin.
 
 ```kotlin
@@ -34,7 +33,7 @@ class HelloWorldHandler : RequestHandler<APIGatewayProxyRequestEvent, APIGateway
 }
 ```
 This is saying that our lambda will Handle an `APIGatewayProxyRequestEvent` payload and return an `APIGatewayProxyResponseEvent`
-with status 200 and an our "hello world" msg in JSON.  
+with status 200 and a "hello world" msg in JSON body.  
 
 Once attached to an API gateway endpoint a request will return the the HTTP response below.
 ```shell script
@@ -101,7 +100,7 @@ If we examine the `APIGatewayProxyRequestEvent` sent to the lambda function we c
     "pathParameters": null,
     "stageVariables": null,
     "requestContext": {
-        "accountId": "662168835",
+        "accountId": "11111111",
         "stage": "demo",
         "resourceId": "zt6sq",
         "requestId": "57073c9c-e46f-4856-be5f-a632f9d8c85f",
@@ -131,9 +130,10 @@ If we examine the `APIGatewayProxyRequestEvent` sent to the lambda function we c
 ```
 
 This is great for setting up simple one off endpoints but gets cumbersome very quickly if we want to set up a
-REST service with multiple endpoints. When we first started to use this we found things like encoding and decoding payloads, checking
+REST service with multiple endpoints. Functionality like extracting from parameters encoding 
+
+When we first started to use this we found things like encoding and decoding payloads, checking
 HTTP Methods and extracting request parameters were all implemented by hand we were implementing a lot of functionality that would be included in other HTTP libraries. .  
-  
   
   
  ##HTTP4K 
@@ -146,8 +146,11 @@ HTTP4K is library written in Kotlin specifically to deal with HTTP programming. 
  - Netty
  - Undertow
  - SunHttp
+ The library also has modules for Metrics, OpenAPI Contracts, OAuth [amongst others](https://www.http4k.org/)
  
- The model itself is very modular, based on a paper Server as a Function paper that gave the idea that a server should be made from the 2 following types of functions 
+ HTTP4K's design is based on a paper "Server as a Function" that gave the idea that a server should
+  be made from the 2 following types of functions:
+  
  A HttpHandler or that takes the incoming HTTP Request returning an HTTP Response 
 ```kotlin 
 typealias HttpHandler = (Request) -> Response
@@ -156,11 +159,12 @@ typealias HttpHandler = (Request) -> Response
 ```kotlin
 interface Filter : (HttpHandler) -> HttpHandler
 ```
+
 The other concept heavily used is a router that matches a incoming requests to the appropriate HTTPHandler. 
 
 There are also functions that allow these basic components to be combined to make larger components of a the same type
 
-In concrete terms if we want to create an api to get and create car information we could nievely create some handlers
+In concrete terms if we want to create an API to fetch and create car information we could naively create some handlers
 ```kotlin 
   val carLens = Body.auto<Car>().toLens()
   val postCarHandler: HttpHandler = { request: Request ->
@@ -181,7 +185,7 @@ In concrete terms if we want to create an api to get and create car information 
      "/cars" bind GET to getCarHandler
    )
 ```
-We can capture the time for each request ot be handled using a filter
+We can capture the time taken for each request to be handled using a filter
 ```kotlin
   val latencyFilter: Filter = Filter { httpHandler: HttpHandler ->
     { request: Request ->
@@ -193,15 +197,15 @@ We can capture the time for each request ot be handled using a filter
     }
   }
 ```
-The filter and routes can then be combined to create a service 
+The filter and routes can then be combined to create another HttpHandler 
 ```kotlin
 val service : HttpHandler = latencyFilter.then(postCarRoute)
 ```
-This can be invoked directly with a Request object for testing
+As HttpHandler is just a function `(Request) -> Response` it can be invoked directly with a Request object for testing
 ```kotlin
 println(service(Request(Method.GET, "/cars")))
 ```
-gives output
+which gives 
 ```
 request took 469 ms
 HTTP/1.1 200 OK
@@ -209,13 +213,13 @@ content-type: application/json; charset=utf-8
 
 [{"id":"123-X","car":{"make":"Ford","model":"Fiesta","year":1985,"colour":"B....}]
 ```
-or the Service can be run as a Server and invoked remotely using a client, in this case a Ktor server and OkHttp client
+or we can run `service` as a Server and invoke remotely using a client, in this case a Ktor server and OkHttp client
 ```kotlin
   val server  = service.asServer(KtorCIO(9000)).start()
   val client = OkHttp()
   println(client(Request(Method.GET, "http://localhost:9000/cars")))
 ``` 
-gives output
+which gives 
 ```
 Responding at http://0.0.0.0:9000
 request took 0 ms
@@ -227,18 +231,17 @@ transfer-encoding: chunked
 [{"id":"123-X","car":{"make":"Ford","model":"Fiesta","y...}]
 ```
  
-The mystery line that may be of interest above is 
+A mystery line that may be of interest above is 
 ```kotlin
 val carLens = Body.auto<Car>().toLens()
 ```
-In HTTP4K a lens is an something that can extract and decode to a specified format from a request while also being
+In HTTP4K a lens is something that can extract and decode to a specified format from a request while also being
  used to encode and update a response. The carLens above will decode JSON in a request to a car object
- 
  ```kotlin
   val ford: Car = carLens(Request(Method.POST, "/cars").body(
     """{"make":"Ford","model":"Fiesta","year":1985, "colour":"Blue"}"""))
 ```
-And can also be used to modify a response while encoding a car object as JSON
+and can also be used to modify a response while encoding a car object as JSON
 ```kotlin
 val bmwResponse: Response =  Response(Status.OK)
     .with(carLens of Car(make = "BMW", model = "i8", year = 2019, colour = "White"))
@@ -247,7 +250,7 @@ HTTP4K also comes with predefined lenses to extract from Parameters and Headers 
 
 ###HTTP4K Serverless module
 While an AWS lambda functions doesn't equate to a server the APIGateway Request and Response events have been adapted to
- the HTTP4k model in the HTTP4K Serverless model. In this case we can use implement a supplied AppLoader interface.
+ the HTTP4k model in the HTTP4K Serverless module. In this case we implement a supplied AppLoader interface.
  
  ```kotlin
 object InventoryHandlerLambdaFunction : AppLoader {
@@ -261,7 +264,7 @@ override fun invoke(env: Map<String, String>): HttpHandler =
 } 
 ```
 
-We now have access to all HTTP4Ks functionality inside our lambda function.
+We now have access to HTTP4Ks functionality and are able to create powerful and succinct REST services inside our lambda function. 
 
 ###Deployment
 Setting up an Lambda function in AWS involves a number of operations that can be off putting. These include setup and
@@ -271,16 +274,18 @@ Setting up an Lambda function in AWS involves a number of operations that can be
 - Log groups
 - AWS Gateway
 
-There a number of libraries that help with this configuration including [Kloudformation](https://kloudformation.hexlabs.io).
-Kloudformation allows users to generate infrastructure templates (AKA Cloudformation, see what we did there) using
- Kotlin for over 300 AWS resources, it also has a serverless module that greatly reduces boiler plate when creating
-  lambda functions. 
- The code below is enough to generate a Cloudformation template for our lambda setup against API gateway. 
+There a number of libraries that help with this configuration but seeing as this is a Kotlin article, we are going to
+ use [Kloudformation](https://kloudformation.hexlabs.io) an open source library developed by Hexlabs.
+Kloudformation allows users to generate AWS infrastructure templates (AKA Cloudformation, see what we did there) using
+ Kotlin for over 300 AWS resources, it also has a serverless module that greatly reduces boilerplate when creating
+  templates for lambda functions. 
+ The code below is enough to generate a Cloudformation template for our lambda setup against API gateway. The full
+  generated template can be [viewed here](https://github.com/hexlabsio/http4k-aws-demo/blob/master/template.yml) 
  ```kotlin
 class Stack : StackBuilder {
   override fun KloudFormation.create(args: List<String>) {
     val (code) = args
-    serverless(serviceName = "htt4k-aws-demo", stage = "demo", bucketName = +"lambda-cf-bucket2") {
+    serverless(serviceName = "htt4k-aws-demo", stage = "demo", bucketName = +"lambda-cf-bucket") {
       serverlessFunction(functionId = "demo-http4k", codeLocationKey = +code,
         handler = +"org.http4k.serverless.lambda.LambdaFunction::handle",
         runtime = +"java8") {
@@ -309,20 +314,21 @@ class Stack : StackBuilder {
 ```
 
 A few parts to note. 
-- The `http {..}` specifies endpoints in API gateway that will be used.   
-- When using HTTP4K `handler` should always be set to `org.http4k.serverless.lambda.LambdaFunction::handle`
+- The `http {..}` is optional and specifies endpoints bound from API gateway to our lambda function.   
+- When using HTTP4K the `handler` field should always be set to `org.http4k.serverless.lambda.LambdaFunction::handle`
 - The object that Implements the HTTP4K `AppLoader` we mentioned earlier is set as an environment variable `HTTP4K_BOOTSTRAP_CLASS`
 
-At this point the `Stack` can be translated to a Cloudformation template using
-`Stack().template().toYaml()` or `Stack().template().toJson()`
-These can then be deployed using the [AWS CLI](https://aws.amazon.com/cli/) or we can use Kloudformations own cli
- that can be installed using
+At this point the `Stack` can be translated to a Cloudformation template and deployed using the 
+[AWS CLI](https://aws.amazon.com/cli/).
+ 
+Alternatively we can use Kloudformations own CLI against the Stack.kt file.
+The Kloudformation CLI that can be installed using
  ```shell script
 curl -s https://install.kloudformation.hexlabs.io | sh
 ```
 Once installed ensure aws credentials are stored in `~/.aws/credentials` and simply run 
 ```shell script
-kloudformation -v 1.1.76 -m serverless@1.1.2 deploy -stack-name htt4k-aws-demo -bucket lambda-cf-bucket2 -location ./build/libs/http4k-aws-demo-uber.jar
+kloudformation -v 1.1.76 -m serverless@1.1.2 deploy -stack-name htt4k-aws-demo -bucket lambda-cf-bucket -location ./build/libs/http4k-aws-demo-uber.jar
 ```
 
 This will deploy our lambda giving the ServiceEndpoint as an output
@@ -337,4 +343,10 @@ Stack Create Complete
 ServiceEndpoint: https://mc925zld.execute-api.eu-west-1.amazonaws.com/demo
 ```
 
-We are now able to code build and deploy  
+We are now able to code build and deploy an lambda function all using Kotlin. If you interested the code can be found 
+[here](https://github.com/hexlabsio/http4k-aws-demo). Some may be scared off by the idea of using lambda functions
+ with the JVM due to [cold starts](https://levelup.gitconnected.com/aws-lambda-cold-start-language-comparisons-2019-edition-%EF%B8%8F-1946d32a0244)
+ while this isn't as big a problem as in the past HTTP4K can also be compiled to a native image using Graalvm greatly
+  reducing this time. This will be a topic for future articles but in the meantime if you interested we have a basic
+   implementation available [here](https://github.com/hexlabsio/graalvm-http-lambda-seed)  
+   
