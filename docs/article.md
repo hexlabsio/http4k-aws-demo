@@ -122,11 +122,7 @@ If we examine the `APIGatewayProxyRequestEvent` sent to the lambda function we c
 }
 ```
 
-This is great for setting up simple one off endpoints but gets cumbersome very quickly if we want to set up a REST service with multiple endpoints. Functionality like extracting from parameters encoding 
-
-When we first started to use this we found things like encoding and decoding payloads, checking
-HTTP Methods and extracting request parameters were all implemented by hand we were implementing a lot of functionality that would be included in other HTTP libraries. .  
-  
+This is great for setting up simple one off endpoints but gets cumbersome very quickly if we want to set up a REST service with multiple endpoints. Functionality like checking HTTP methods, extracting from parameters encoding and decoding payloads that is part of most HTTP frameworks needs to be implemented by hand. For this reason we were very happy to discover HTTP4K.
   
  ## HTTP4K 
 HTTP4K is library written in Kotlin specifically to deal with HTTP programming. Rather than its own implement an HTTP
@@ -140,10 +136,9 @@ HTTP4K is library written in Kotlin specifically to deal with HTTP programming. 
  - SunHttp
  The library also has modules for Metrics, OpenAPI Contracts, OAuth [amongst others](https://www.http4k.org/)
  
- HTTP4K's design is based on a paper "Server as a Function" that gave the idea that a server should
-  be made from the 2 following types of functions:
+ HTTP4K's design is based on the paper [Your Server as a Function](https://monkey.org/~marius/funsrv.pdf) that gave the idea that a server should be made from the 2 following types of functions:
   
- A HttpHandler or that takes the incoming HTTP Request returning an HTTP Response 
+ A Service or HttpHandler that takes the incoming HTTP Request returning an HTTP Response 
 ```kotlin 
 typealias HttpHandler = (Request) -> Response
 ```
@@ -154,9 +149,7 @@ interface Filter : (HttpHandler) -> HttpHandler
 
 The other concept heavily used is a router that matches a incoming requests to the appropriate HTTPHandler. 
 
-There are also functions that allow these basic components to be combined to make larger components of a the same type
-
-In concrete terms if we want to create an API to fetch and create car information we could naively create some handlers
+There are also functions that allow these basic components to be combined to make larger components of a the same type. In concrete terms if we want to create an API to fetch and create car information we could naively create some HTTPHandlers
 ```kotlin 
   val carLens = Body.auto<Car>().toLens()
   val postCarHandler: HttpHandler = { request: Request ->
@@ -242,7 +235,7 @@ HTTP4K also comes with predefined lenses to extract from Parameters and Headers 
 
 ### HTTP4K Serverless module
 While an AWS lambda functions doesn't equate to a server the APIGateway Request and Response events have been adapted to
- the HTTP4k model in the HTTP4K Serverless module. In this case we implement a supplied AppLoader interface.
+ the HTTP4k model in the HTTP4K Serverless module. In this case we implement a supplied `AppLoader` interface.
  
  ```kotlin
 object InventoryHandlerLambdaFunction : AppLoader {
@@ -336,9 +329,7 @@ ServiceEndpoint: https://mc925zld.execute-api.eu-west-1.amazonaws.com/demo
 ```
 
 We are now able to code build and deploy an lambda function all using Kotlin. If you interested the code can be found 
-[here](https://github.com/hexlabsio/http4k-aws-demo). Some may be scared off by the idea of using lambda functions
+[here](https://github.com/hexlabsio/http4k-aws-demo). Some may be wary of using lambda functions
  with the JVM due to [cold starts](https://levelup.gitconnected.com/aws-lambda-cold-start-language-comparisons-2019-edition-%EF%B8%8F-1946d32a0244)
- while this isn't as big a problem as in the past HTTP4K can also be compiled to a native image using Graalvm greatly
-  reducing this time. This will be a topic for future articles but in the meantime if you interested we have a basic
-   implementation available [here](https://github.com/hexlabsio/graalvm-http-lambda-seed)  
+ while this isn't as big a problem as in the past, HTTP4K can also be compiled to a native image using Graalvm reducing this time. This will be a topic for future articles but in the meantime if you interested we have a basic implementation available [here](https://github.com/hexlabsio/graalvm-http-lambda-seed)  
    
