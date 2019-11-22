@@ -3,10 +3,7 @@
 At Hexlabs we have been using AWS lambda functions for number of use cases over the past few years.
 The basic idea is that you deploy code that reacts to a specified event in an AWS envrionment. 
 AWS is then responsible for ensuring that the code to process the event is run in a timely manner. If no events take place 
-the code is not run and so there is cost for the f. On the other side of things if there are a large amount of events
- happening AWS can quickly
-spin up many instances of the lambda function to cope with the higher workload. From this we get services that are cost
-effective and scalable with a minimal overhead to support them.
+the code is not run and so there is cost for whoever pays the bill. On the other side of things, if there are a large amount of events happening AWS can quickly spin up many instances of the lambda function to cope with the higher workload. From this we get services that are cost-effective and scalable with a minimal overhead to support.
 
 A lambda functions can be configured to react to an [ever growing list of events](
 https://docs.aws.amazon.com/lambda/latest/dg/lambda-services.html) 
